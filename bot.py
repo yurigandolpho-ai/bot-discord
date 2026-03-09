@@ -36,11 +36,11 @@ async def on_message(message):
 
     user_id = message.author.id
 
-    # interação no canal live
+    # pontos canal live
     if message.channel.id == LIVE_CANAL_ID:
         ranking[user_id] = ranking.get(user_id, 0) + 1
 
-    # canal de provas
+    # pontos canal provas
     if message.channel.id == PROVAS_CANAL_ID:
 
         if message.content.lower().startswith("!meta"):
@@ -51,42 +51,35 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-# COMANDO LOJA (FUNCIONA APENAS NO CANAL DE LOJA)
+# COMANDO LOJA (USA IMAGEM DA LOJA)
 @bot.command()
 async def loja(ctx):
 
     if ctx.channel.id != LOJA_CANAL_ID:
-        await ctx.send("❌ Use o comando !loja apenas no canal de loja.")
+        await ctx.send("❌ Use !loja apenas no canal da loja.")
         return
 
     try:
 
-        api = "https://fortnite-api.com/v2/shop"
-        r = requests.get(api).json()
+        api = "https://fortnite-api.com/v2/shop/br"
+        r = requests.get(api)
+        data = r.json()
 
-        items = r["data"]["entries"]
+        imagem = data["data"]["image"]
 
         embed = discord.Embed(
             title="🛒 Loja de Itens Fortnite",
+            description="Loja atual do dia",
             color=discord.Color.blue()
         )
 
-        for item in items[:8]:
-
-            nome = item["items"][0]["name"]
-            preco = item["finalPrice"]
-            img = item["items"][0]["images"]["icon"]
-
-            embed.add_field(
-                name=f"{nome} — {preco} V-Bucks",
-                value=img,
-                inline=False
-            )
+        embed.set_image(url=imagem)
 
         await ctx.send(embed=embed)
 
     except Exception as e:
-        await ctx.send(f"❌ Erro ao pegar loja: {e}")
+        await ctx.send("❌ Não foi possível pegar a loja agora.")
+        print(e)
 
 # RANKING SEMANAL
 @tasks.loop(hours=24)
@@ -94,6 +87,7 @@ async def verificar_ranking():
 
     hoje = datetime.datetime.utcnow()
 
+    # domingo
     if hoje.weekday() != 6:
         return
 
@@ -108,16 +102,16 @@ async def verificar_ranking():
 
     ranking_ordenado = sorted(ranking.items(), key=lambda x: x[1], reverse=True)
 
-    texto = "🏆 **Ranking Semanal**\n\n"
+    mensagem = "🏆 **Ranking Semanal**\n\n"
 
     for pos, (user_id, pontos) in enumerate(ranking_ordenado, start=1):
 
         user = await bot.fetch_user(user_id)
-        texto += f"{pos}. {user.mention} — {pontos} pontos\n"
+        mensagem += f"{pos}. {user.mention} — {pontos} pontos\n"
 
-    await canal.send(texto)
+    await canal.send(mensagem)
 
-    # TOP 1 ganha VIP
+    # VIP para top 1
     top_user_id = ranking_ordenado[0][0]
 
     guild = canal.guild
@@ -125,20 +119,9 @@ async def verificar_ranking():
     cargo = guild.get_role(CARGO_VIP_ID)
 
     if member and cargo:
-
         await member.add_roles(cargo)
 
-        bot.loop.create_task(remover_cargo(member, cargo))
-
     ranking.clear()
-
-async def remover_cargo(member, cargo):
-
-    await discord.utils.sleep_until(
-        datetime.datetime.utcnow() + datetime.timedelta(days=7)
-    )
-
-    await member.remove_roles(cargo)
 
 # COMANDO TESTE
 @bot.command()
@@ -146,5 +129,6 @@ async def oi(ctx):
     await ctx.send(f"Oi {ctx.author.mention}!")
 
 bot.run(TOKEN)
+
 
 
