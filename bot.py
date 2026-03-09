@@ -54,24 +54,23 @@ async def loja(ctx):
         r = requests.get("https://fortnite-api.com/v2/shop", timeout=5)
         
         print(f"Status: {r.status_code}")
-        print(f"Response: {r.text[:500]}")
+        print(f"Response completa: {r.text}")
         
         if r.status_code != 200:
             await ctx.send(f"❌ Erro na API: {r.status_code}")
             return
         
         data = r.json()
+        print(f"Data keys: {data.keys()}")
         
         # Tenta diferentes estruturas
         items = None
-        if "data" in data and "featured" in data["data"]:
-            items = data["data"]["featured"]
-        elif "data" in data and "items" in data["data"]:
-            items = data["data"]["items"]
-        elif "featured" in data:
-            items = data["featured"]
-        elif "items" in data:
-            items = data["items"]
+        if "data" in data:
+            print(f"Data.keys: {data['data'].keys()}")
+            if "featured" in data["data"]:
+                items = data["data"]["featured"]
+            elif "items" in data["data"]:
+                items = data["data"]["items"]
         
         if not items:
             await ctx.send("🛒 Nenhum item encontrado na loja")
@@ -124,3 +123,4 @@ async def oi(ctx):
     await ctx.send("Oi!")
 
 bot.run(TOKEN)
+
