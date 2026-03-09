@@ -1,7 +1,8 @@
 import discord
 from discord.ext import commands, tasks
-import datetime
+import requests
 import os
+import datetime
 
 TOKEN = os.getenv("TOKEN")
 
@@ -11,7 +12,7 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# IDS DOS CANAIS
+# IDS
 LOJA_CANAL_ID = 1473476696970756276
 RANKING_CANAL_ID = 1473011415567827218
 PROVAS_CANAL_ID = 1473476696970756277
@@ -20,13 +21,11 @@ CARGO_VIP_ID = 1477809290608644259
 
 ranking = {}
 
-# BOT ONLINE
 @bot.event
 async def on_ready():
-    print(f"{bot.user} está online!")
+    print("Bot online!")
     verificar_ranking.start()
 
-# SISTEMA DE PONTOS
 @bot.event
 async def on_message(message):
 
@@ -48,22 +47,41 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-# COMANDO LOJA (NUNCA DÁ ERRO)
+# COMANDO LOJA (TEXTO SIMPLES)
 @bot.command()
 async def loja(ctx):
 
     if ctx.channel.id != LOJA_CANAL_ID:
         return
 
-    embed = discord.Embed(
-        title="🛒 Loja de Itens Fortnite",
-        description="Loja atual",
-        color=discord.Color.blue()
-    )
+    try:
 
-    embed.set_image(url="https://fortnite-api.com/images/shop.png")
+        url = "https://fortnite-api.com/v2/shop"
+        response = requests.get(url, timeout=10)
+        data = response.json()
 
-    await ctx.send(embed=embed)
+        entries = data["data"]["entries"]
+
+        mensagem = "🛒 **Loja Fortnite**\n\n"
+
+        contador = 0
+
+        for entry in entries:
+
+            if contador >= 10:
+                break
+
+            nome = entry["items"][0]["name"]
+            preco = entry["finalPrice"]
+
+            mensagem += f"• {nome} — {preco} V-Bucks\n"
+
+            contador += 1
+
+        await ctx.send(mensagem)
+
+    except:
+        await ctx.send("Não consegui pegar a loja agora.")
 
 # RANKING SEMANAL
 @tasks.loop(hours=24)
@@ -85,14 +103,14 @@ async def verificar_ranking():
 
     ranking_ordenado = sorted(ranking.items(), key=lambda x: x[1], reverse=True)
 
-    mensagem = "🏆 **Ranking Semanal**\n\n"
+    texto = "🏆 **Ranking Semanal**\n\n"
 
     for pos, (user_id, pontos) in enumerate(ranking_ordenado, start=1):
 
         user = await bot.fetch_user(user_id)
-        mensagem += f"{pos}. {user.mention} — {pontos} pontos\n"
+        texto += f"{pos}. {user.mention} — {pontos} pontos\n"
 
-    await canal.send(mensagem)
+    await canal.send(texto)
 
     top_user_id = ranking_ordenado[0][0]
 
@@ -105,10 +123,9 @@ async def verificar_ranking():
 
     ranking.clear()
 
-# COMANDO TESTE
 @bot.command()
 async def oi(ctx):
-    await ctx.send(f"Oi {ctx.author.mention}!")
+    await ctx.send("Oi!")
 
 bot.run(TOKEN)
 
