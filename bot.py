@@ -1,7 +1,5 @@
 import discord
 from discord.ext import commands, tasks
-import urllib.request
-import json
 import os
 import datetime
 
@@ -13,6 +11,7 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# IDS
 LOJA_CANAL_ID = 1473476696970756276
 RANKING_CANAL_ID = 1473011415567827218
 PROVAS_CANAL_ID = 1473476696970756277
@@ -45,37 +44,24 @@ async def on_message(message):
         elif message.attachments:
             ranking[user_id] = ranking.get(user_id, 0) + 3
 
+    # IMPORTANTE (permite comandos funcionar)
     await bot.process_commands(message)
 
+# COMANDO LOJA
 @bot.command()
 async def loja(ctx):
 
+    print("Comando loja usado")  # aparece no log do Railway
+
     if ctx.channel.id != LOJA_CANAL_ID:
+        await ctx.send("Use o comando apenas no canal da loja.")
         return
 
-    try:
-
-        url = "https://fortnite-api.com/v2/shop"
-
-        with urllib.request.urlopen(url) as response:
-            data = json.loads(response.read().decode())
-
-        entries = data["data"]["entries"]
-
-        mensagem = "🛒 Loja Fortnite\n\n"
-
-        for entry in entries[:10]:
-
-            nome = entry["items"][0]["name"]
-            preco = entry["finalPrice"]
-
-            mensagem += f"{nome} — {preco} V-Bucks\n"
-
-        await ctx.send(mensagem)
-
-    except Exception as e:
-        print(e)
-        await ctx.send("Loja indisponível no momento.")
+    await ctx.send(
+        "🛒 Loja Fortnite\n\n"
+        "Veja a loja atual aqui:\n"
+        "https://fortnite.gg/shop"
+    )
 
 @tasks.loop(hours=24)
 async def verificar_ranking():
@@ -105,15 +91,6 @@ async def verificar_ranking():
 
     await canal.send(texto)
 
-    top_user_id = ranking_ordenado[0][0]
-
-    guild = canal.guild
-    member = guild.get_member(top_user_id)
-    cargo = guild.get_role(CARGO_VIP_ID)
-
-    if member and cargo:
-        await member.add_roles(cargo)
-
     ranking.clear()
 
 @bot.command()
@@ -121,7 +98,6 @@ async def oi(ctx):
     await ctx.send("Oi!")
 
 bot.run(TOKEN)
-
 
 
 
