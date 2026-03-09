@@ -50,52 +50,59 @@ async def on_message(message):
     await bot.process_commands(message)
 
 # COMANDO LOJA
-import discord
-from discord.ext import commands
-import requests
-
-LOJA_CANAL_ID = 123456789012345678  # coloque o ID do canal da loja
-
-bot = commands.Bot(command_prefix="!")
-
 @bot.command()
 async def loja(ctx):
+
     if ctx.channel.id != LOJA_CANAL_ID:
         return
 
     try:
-        r = requests.get("https://fortnite-api.com/v2/shop/br", timeout=10)
+        url = "https://fortnite-api.com/v2/shop?language=pt-BR"
+        r = requests.get(url, timeout=10)
         r.raise_for_status()
+
         data = r.json().get("data", {})
 
-        featured = data.get("featured", [])
-        daily = data.get("daily", [])
+        # lista de entradas da loja
+        entries = data.get("entries", [])
 
-        if not featured and not daily:
+        if not entries:
             await ctx.send("🛒 Nenhum item encontrado na loja.")
             return
 
         mensagem = "🛒 **Loja Fortnite Atualizada**\n\n"
+        count = 0
 
-        if featured:
-            mensagem += "**⭐ Destaques:**\n"
-            for item in featured[:8]:
-                nome = item.get("name", "Item")
-                preco = item.get("price", "?")
-                mensagem += f"{nome} — {preco} V-Bucks\n"
+        for entry in entries:
 
-        if daily:
-            mensagem += "\n🔥 **Diários:**\n"
-            for item in daily[:8]:
-                nome = item.get("name", "Item")
-                preco = item.get("price", "?")
-                mensagem += f"{nome} — {preco} V-Bucks\n"
+            # verifica se este bloco tem items
+            if not entry.get("items"):
+                continue
+
+            # item principal
+            item = entry["items"][0]
+
+            nome = item.get("name", "Item")
+            preco = entry.get("finalPrice", "?")
+
+            mensagem += f"• {nome} — {preco} V-Bucks\n"
+            count += 1
+
+            if count >= 10:
+                break
+
+        # Linha de debug para ver quantos itens foram encontrados
+        print("NUMERO DE ITEMS:", count)
+
+        if count == 0:
+            await ctx.send("🛒 Nenhum item válido foi encontrado.")
+            return
 
         await ctx.send(mensagem)
 
     except Exception as e:
-        await ctx.send("❌ Erro ao acessar API da loja.")
-        print("Erro loja:", e)
+        print("ERRO LOJA:", e)
+        await ctx.send("❌ Erro ao pegar a loja.")
 # RANKING SEMANAL
 @tasks.loop(hours=24)
 async def verificar_ranking():
@@ -143,6 +150,7 @@ async def oi(ctx):
     await ctx.send("Oi!")
 
 bot.run(TOKEN)
+
 
 
 
