@@ -59,23 +59,23 @@ async def loja(ctx):
     try:
 
         url = "https://fortnite-api.com/v2/shop"
-        response = requests.get(url, timeout=10)
-        data = response.json()
+        r = requests.get(url, timeout=10)
+        data = r.json()
 
         entries = data["data"]["entries"]
 
         mensagem = "🛒 **Loja Fortnite**\n\n"
-
         contador = 0
 
         for entry in entries:
 
-            if "items" not in entry:
+            # verifica se existe items
+            if not entry.get("items"):
                 continue
 
             item = entry["items"][0]
 
-            nome = item["name"]
+            nome = item.get("name", "Item desconhecido")
             preco = entry.get("finalPrice", "?")
 
             mensagem += f"• {nome} — {preco} V-Bucks\n"
@@ -86,16 +86,15 @@ async def loja(ctx):
                 break
 
         if contador == 0:
-            await ctx.send("Nenhum item encontrado na loja.")
+            await ctx.send("🛒 Nenhum item disponível na loja.")
             return
 
         await ctx.send(mensagem)
 
     except Exception as e:
 
-        print("ERRO LOJA:", e)
-        await ctx.send("Erro ao pegar a loja.")
-
+        print("ERRO LOJA COMPLETO:", e)
+        await ctx.send("❌ Erro ao pegar a loja.")
 # RANKING SEMANAL
 @tasks.loop(hours=24)
 async def verificar_ranking():
@@ -143,3 +142,4 @@ async def oi(ctx):
     await ctx.send("Oi!")
 
 bot.run(TOKEN)
+
