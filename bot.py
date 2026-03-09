@@ -36,11 +36,9 @@ async def on_message(message):
 
     user_id = message.author.id
 
-    # pontos canal live
     if message.channel.id == LIVE_CANAL_ID:
         ranking[user_id] = ranking.get(user_id, 0) + 1
 
-    # pontos canal provas
     if message.channel.id == PROVAS_CANAL_ID:
 
         if message.content.lower().startswith("!meta"):
@@ -51,7 +49,7 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-# COMANDO LOJA (USA IMAGEM DA LOJA)
+# COMANDO LOJA
 @bot.command()
 async def loja(ctx):
 
@@ -61,24 +59,28 @@ async def loja(ctx):
 
     try:
 
-        api = "https://fortnite-api.com/v2/shop/br"
-        r = requests.get(api)
-        data = r.json()
+        url = "https://fortnite-api.com/v2/shop"
+        response = requests.get(url, timeout=10)
 
-        imagem = data["data"]["image"]
+        if response.status_code != 200:
+            await ctx.send("❌ API da loja não respondeu.")
+            return
+
+        data = response.json()
+
+        image = data["data"]["imageUrl"]
 
         embed = discord.Embed(
             title="🛒 Loja de Itens Fortnite",
-            description="Loja atual do dia",
             color=discord.Color.blue()
         )
 
-        embed.set_image(url=imagem)
+        embed.set_image(url=image)
 
         await ctx.send(embed=embed)
 
     except Exception as e:
-        await ctx.send("❌ Não foi possível pegar a loja agora.")
+        await ctx.send("❌ Erro ao pegar loja.")
         print(e)
 
 # RANKING SEMANAL
@@ -87,7 +89,6 @@ async def verificar_ranking():
 
     hoje = datetime.datetime.utcnow()
 
-    # domingo
     if hoje.weekday() != 6:
         return
 
@@ -111,7 +112,6 @@ async def verificar_ranking():
 
     await canal.send(mensagem)
 
-    # VIP para top 1
     top_user_id = ranking_ordenado[0][0]
 
     guild = canal.guild
@@ -129,6 +129,7 @@ async def oi(ctx):
     await ctx.send(f"Oi {ctx.author.mention}!")
 
 bot.run(TOKEN)
+
 
 
 
