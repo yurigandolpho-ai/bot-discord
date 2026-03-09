@@ -55,47 +55,25 @@ import requests
 @bot.command()
 async def loja(ctx):
 
-    if ctx.channel.id != LOJA_CANAL_ID:
-        return
-
     try:
-        url = "https://fortnite-api.com/v2/shop/br"
-        res = requests.get(url, timeout=10)
+        r = requests.get("https://fortnite-api.com/v2/shop?language=pt-BR", timeout=10)
+        data = r.json()
 
-        if res.status_code != 200:
-            await ctx.send("❌ Erro ao acessar API da loja.")
-            return
-
-        data = res.json()
         entries = data["data"]["featured"]["entries"]
 
-        msg = "🛒 **LOJA DO FORTNITE**\n\n"
+        mensagem = "🛒 **LOJA DO FORTNITE**\n\n"
 
-        count = 0
+        for item in entries[:5]:
+            nome = item["items"][0]["name"]
+            preco = item["finalPrice"]
 
-        for entry in entries:
+            mensagem += f"{nome} — {preco} V-Bucks\n"
 
-            if not entry["items"]:
-                continue
+        await ctx.send(mensagem)
 
-            nome = entry["items"][0]["name"]
-            preco = entry["finalPrice"]
-
-            msg += f"• {nome} — {preco} V-Bucks\n"
-
-            count += 1
-            if count >= 10:
-                break
-
-        if count == 0:
-            await ctx.send("🛒 Nenhum item encontrado.")
-            return
-
-        await ctx.send(msg)
-
-    except Exception as e:
-        print("ERRO LOJA:", e)
-        await ctx.send("❌ Erro ao pegar loja.")
+    except Exception as erro:
+        print("ERRO LOJA:", erro)
+        await ctx.send("❌ Erro ao pegar a loja.")
 # RANKING SEMANAL
 @tasks.loop(hours=24)
 async def verificar_ranking():
@@ -143,6 +121,7 @@ async def oi(ctx):
     await ctx.send("Oi!")
 
 bot.run(TOKEN)
+
 
 
 
