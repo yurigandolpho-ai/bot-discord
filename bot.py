@@ -12,8 +12,7 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# IDS
-LOJA_CANAL_ID = 1473476696970756276
+# IDS DOS CANAIS
 RANKING_CANAL_ID = 1473011415567827218
 PROVAS_CANAL_ID = 1473476696970756277
 LIVE_CANAL_ID = 1473476696970756278
@@ -25,7 +24,6 @@ ranking = {}
 @bot.event
 async def on_ready():
     print(f"{bot.user} está online!")
-    enviar_loja.start()
     verificar_ranking.start()
 
 # SISTEMA DE PONTOS
@@ -52,14 +50,9 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-# LOJA AUTOMÁTICA
-@tasks.loop(hours=24)
-async def enviar_loja():
-
-    canal = bot.get_channel(LOJA_CANAL_ID)
-
-    if not canal:
-        return
+# COMANDO LOJA
+@bot.command()
+async def loja(ctx):
 
     try:
 
@@ -73,7 +66,7 @@ async def enviar_loja():
             color=discord.Color.blue()
         )
 
-        for item in items[:6]:
+        for item in items[:8]:
 
             nome = item["items"][0]["name"]
             preco = item["finalPrice"]
@@ -85,10 +78,10 @@ async def enviar_loja():
                 inline=False
             )
 
-        await canal.send(embed=embed)
+        await ctx.send(embed=embed)
 
     except Exception as e:
-        await canal.send(f"❌ Erro ao pegar loja: {e}")
+        await ctx.send(f"❌ Erro ao pegar loja: {e}")
 
 # RANKING SEMANAL
 @tasks.loop(hours=24)
@@ -148,3 +141,5 @@ async def oi(ctx):
     await ctx.send(f"Oi {ctx.author.mention}!")
 
 bot.run(TOKEN)
+bot.run(TOKEN)
+
