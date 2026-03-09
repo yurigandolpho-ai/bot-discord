@@ -50,59 +50,42 @@ async def on_message(message):
     await bot.process_commands(message)
 
 # COMANDO LOJA
+import requests
+from discord.ext import commands
+
+# IDs e bot já configurados
+LOJA_CANAL_ID = 1473476696970756276
+
 @bot.command()
 async def loja(ctx):
-
     if ctx.channel.id != LOJA_CANAL_ID:
         return
 
     try:
-        url = "https://fortnite-api.com/v2/shop?language=pt-BR"
-        r = requests.get(url, timeout=10)
+        # Pega a loja brasileira
+        r = requests.get("https://fortnite-api.com/v2/shop/br", timeout=10)
         r.raise_for_status()
+        data = r.json()
 
-        data = r.json().get("data", {})
-
-        # lista de entradas da loja
-        entries = data.get("entries", [])
-
+        entries = data.get("data", {}).get("entries", [])
         if not entries:
-            await ctx.send("🛒 Nenhum item encontrado na loja.")
+            await ctx.send("🛒 Nenhum item válido foi encontrado.")
             return
 
         mensagem = "🛒 **Loja Fortnite Atualizada**\n\n"
-        count = 0
 
-        for entry in entries:
-
-            # verifica se este bloco tem items
-            if not entry.get("items"):
-                continue
-
-            # item principal
-            item = entry["items"][0]
-
-            nome = item.get("name", "Item")
-            preco = entry.get("finalPrice", "?")
-
-            mensagem += f"• {nome} — {preco} V-Bucks\n"
-            count += 1
-
-            if count >= 10:
-                break
-
-        # Linha de debug para ver quantos itens foram encontrados
-        print("NUMERO DE ITEMS:", count)
-
-        if count == 0:
-            await ctx.send("🛒 Nenhum item válido foi encontrado.")
-            return
+        for entry in entries[:10]:  # pega só os 10 primeiros itens
+            item = entry.get("items", [])[0] if entry.get("items") else None
+            if item:
+                nome = item.get("name", "Item Desconhecido")
+                preco = item.get("price", {}).get("finalPrice", "??")
+                mensagem += f"{nome} — {preco} V-Bucks\n"
 
         await ctx.send(mensagem)
 
     except Exception as e:
         print("ERRO LOJA:", e)
-        await ctx.send("❌ Erro ao pegar a loja.")
+        await ctx.send("❌ Erro ao acessar API da loja.")
 # RANKING SEMANAL
 @tasks.loop(hours=24)
 async def verificar_ranking():
@@ -150,6 +133,7 @@ async def oi(ctx):
     await ctx.send("Oi!")
 
 bot.run(TOKEN)
+
 
 
 
