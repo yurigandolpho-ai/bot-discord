@@ -53,30 +53,41 @@ async def loja(ctx):
     try:
         r = requests.get("https://fortnite-api.com/v2/shop", timeout=5)
         
+        print(f"Status: {r.status_code}")
+        print(f"Response: {r.text[:500]}")
+        
         if r.status_code != 200:
             await ctx.send(f"❌ Erro na API: {r.status_code}")
             return
         
         data = r.json()
         
-        if "data" not in data or "featured" not in data["data"]:
-            await ctx.send("❌ Estrutura de dados inesperada")
-            return
-        
-        items = data["data"]["featured"][:5]
+        # Tenta diferentes estruturas
+        items = None
+        if "data" in data and "featured" in data["data"]:
+            items = data["data"]["featured"]
+        elif "data" in data and "items" in data["data"]:
+            items = data["data"]["items"]
+        elif "featured" in data:
+            items = data["featured"]
+        elif "items" in data:
+            items = data["items"]
         
         if not items:
-            await ctx.send("🛒 Nenhum item na loja")
+            await ctx.send("🛒 Nenhum item encontrado na loja")
             return
         
         msg = "🛒 **Loja Fortnite**\n\n"
-        for item in items:
-            msg += f"• {item.get('name', 'Item')} - {item.get('price', '?')} V-Bucks\n"
+        for item in items[:5]:
+            nome = item.get('name', 'Item desconhecido')
+            preco = item.get('price', '?')
+            msg += f"• {nome} - {preco} V-Bucks\n"
         
         await ctx.send(msg)
     
     except Exception as e:
         await ctx.send(f"❌ Erro: {str(e)}")
+        print(f"Erro completo: {e}")
 
 @tasks.loop(hours=24)
 async def verificar_ranking():
@@ -113,7 +124,3 @@ async def oi(ctx):
     await ctx.send("Oi!")
 
 bot.run(TOKEN)
-
-
-
-
