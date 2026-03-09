@@ -54,33 +54,46 @@ async def on_message(message):
 async def loja(ctx):
 
     if ctx.channel.id != LOJA_CANAL_ID:
-        await ctx.send("❌ Use !loja apenas no canal da loja.")
+        await ctx.send("❌ Use !loja apenas no canal de loja.")
         return
 
     try:
 
         url = "https://fortnite-api.com/v2/shop"
-        response = requests.get(url, timeout=10)
-
-        if response.status_code != 200:
-            await ctx.send("❌ API da loja não respondeu.")
-            return
+        response = requests.get(url)
 
         data = response.json()
 
-        image = data["data"]["imageUrl"]
+        entries = data["data"]["entries"]
 
         embed = discord.Embed(
             title="🛒 Loja de Itens Fortnite",
             color=discord.Color.blue()
         )
 
-        embed.set_image(url=image)
+        contador = 0
+
+        for entry in entries:
+
+            if contador >= 10:
+                break
+
+            item = entry["items"][0]
+            nome = item["name"]
+            preco = entry["finalPrice"]
+
+            embed.add_field(
+                name=nome,
+                value=f"💰 {preco} V-Bucks",
+                inline=False
+            )
+
+            contador += 1
 
         await ctx.send(embed=embed)
 
     except Exception as e:
-        await ctx.send("❌ Erro ao pegar loja.")
+        await ctx.send("❌ Não foi possível pegar a loja.")
         print(e)
 
 # RANKING SEMANAL
