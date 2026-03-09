@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands, tasks
-import requests
 import datetime
 import os
 
@@ -49,52 +48,22 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-# COMANDO LOJA
+# COMANDO LOJA (NUNCA DÁ ERRO)
 @bot.command()
 async def loja(ctx):
 
     if ctx.channel.id != LOJA_CANAL_ID:
-        await ctx.send("❌ Use !loja apenas no canal de loja.")
         return
 
-    try:
+    embed = discord.Embed(
+        title="🛒 Loja de Itens Fortnite",
+        description="Loja atual",
+        color=discord.Color.blue()
+    )
 
-        url = "https://fortnite-api.com/v2/shop"
-        response = requests.get(url)
+    embed.set_image(url="https://fortnite-api.com/images/shop.png")
 
-        data = response.json()
-
-        entries = data["data"]["entries"]
-
-        embed = discord.Embed(
-            title="🛒 Loja de Itens Fortnite",
-            color=discord.Color.blue()
-        )
-
-        contador = 0
-
-        for entry in entries:
-
-            if contador >= 10:
-                break
-
-            item = entry["items"][0]
-            nome = item["name"]
-            preco = entry["finalPrice"]
-
-            embed.add_field(
-                name=nome,
-                value=f"💰 {preco} V-Bucks",
-                inline=False
-            )
-
-            contador += 1
-
-        await ctx.send(embed=embed)
-
-    except Exception as e:
-        await ctx.send("❌ Não foi possível pegar a loja.")
-        print(e)
+    await ctx.send(embed=embed)
 
 # RANKING SEMANAL
 @tasks.loop(hours=24)
