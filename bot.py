@@ -12,7 +12,6 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# IDS DOS CANAIS
 LOJA_CANAL_ID = 1473476696970756276
 RANKING_CANAL_ID = 1473011415567827218
 PROVAS_CANAL_ID = 1473476696970756277
@@ -26,77 +25,76 @@ async def on_ready():
     print("Bot online!")
     verificar_ranking.start()
 
+# sistema de pontos
 @bot.event
 async def on_message(message):
-
     if message.author.bot:
         return
 
-    user_id = message.author.id
+    uid = message.author.id
 
-    # pontos nas lives
     if message.channel.id == LIVE_CANAL_ID:
-        ranking[user_id] = ranking.get(user_id, 0) + 1
+        ranking[uid] = ranking.get(uid, 0) + 1
 
-    # pontos nas provas
     if message.channel.id == PROVAS_CANAL_ID:
-
         if message.content.lower().startswith("!meta"):
-            ranking[user_id] = ranking.get(user_id, 0) + 2
-
+            ranking[uid] = ranking.get(uid, 0) + 2
         elif message.attachments:
-            ranking[user_id] = ranking.get(user_id, 0) + 3
+            ranking[uid] = ranking.get(uid, 0) + 3
 
     await bot.process_commands(message)
 
-# COMANDO LOJA
-import requests
-from discord.ext import commands
-
-# IDs e bot já configurados
-LOJA_CANAL_ID = 1473476696970756276
-
 @bot.command()
 async def loja(ctx):
+
     if ctx.channel.id != LOJA_CANAL_ID:
         return
 
     try:
-        # Pega a loja brasileira
-        r = requests.get("https://fortnite-api.com/v2/shop/br", timeout=10)
-        r.raise_for_status()
-        data = r.json()
+        # pega a loja da API
+        response = requests.get("https://fortnite-api.com/v2/shop?language=pt-BR", timeout=10)
+        response.raise_for_status()
+        shopdata = response.json().get("data", {})
 
-        entries = data.get("data", {}).get("entries", [])
+        entries = shopdata.get("entries", [])
+
         if not entries:
-            await ctx.send("🛒 Nenhum item válido foi encontrado.")
+            await ctx.send("🛒 Nenhum item encontrado na loja.")
             return
 
-        mensagem = "🛒 **Loja Fortnite Atualizada**\n\n"
+        msg = "🛒 **Loja Fortnite Atualizada**\n\n"
+        count = 0
 
-        for entry in entries[:10]:  # pega só os 10 primeiros itens
-            item = entry.get("items", [])[0] if entry.get("items") else None
-            if item:
-                nome = item.get("name", "Item Desconhecido")
-                preco = item.get("price", {}).get("finalPrice", "??")
-                mensagem += f"{nome} — {preco} V-Bucks\n"
+        for e in entries:
+            items = e.get("items")
+            if not items:
+                continue
+            item = items[0]
+            nome = item.get("name", "Item desconhecido")
+            preco = e.get("finalPrice", "?")
+            msg += f"{nome} — {preco} V-Bucks\n"
+            count += 1
+            if count >= 12:
+                break
 
-        await ctx.send(mensagem)
+        if count == 0:
+            await ctx.send("🛒 Nenhum item válido na loja.")
+            return
 
-    except Exception as e:
-        print("ERRO LOJA:", e)
-        await ctx.send("❌ Erro ao acessar API da loja.")
-# RANKING SEMANAL
+        await ctx.send(msg)
+
+    except Exception as erro:
+        print("ERRO LOJA:", erro)
+        await ctx.send("❌ Erro ao pegar a loja.")
+
 @tasks.loop(hours=24)
 async def verificar_ranking():
 
     hoje = datetime.datetime.utcnow()
-
     if hoje.weekday() != 6:
         return
 
     canal = bot.get_channel(RANKING_CANAL_ID)
-
     if not canal:
         return
 
@@ -104,40 +102,25 @@ async def verificar_ranking():
         await canal.send("🏆 Ranking semanal vazio.")
         return
 
-    ranking_ordenado = sorted(ranking.items(), key=lambda x: x[1], reverse=True)
+    sorted_rank = sorted(ranking.items(), key=lambda x: x[1], reverse=True)
 
     texto = "🏆 **Ranking Semanal**\n\n"
-
-    for pos, (user_id, pontos) in enumerate(ranking_ordenado, start=1):
-
-        user = await bot.fetch_user(user_id)
-        texto += f"{pos}. {user.mention} — {pontos} pontos\n"
+    for i, (uid, pts) in enumerate(sorted_rank, start=1):
+        user = await bot.fetch_user(uid)
+        texto += f"{i}. {user.mention} — {pts} pontos\n"
 
     await canal.send(texto)
 
-    # dar VIP ao top 1
-    top_user_id = ranking_ordenado[0][0]
-
-    guild = canal.guild
-    member = guild.get_member(top_user_id)
-    cargo = guild.get_role(CARGO_VIP_ID)
-
+    top_uid = sorted_rank[0][0]
+    member = canal.guild.get_member(top_uid)
+    cargo = canal.guild.get_role(CARGO_VIP_ID)
     if member and cargo:
         await member.add_roles(cargo)
 
     ranking.clear()
 
-# COMANDO TESTE
 @bot.command()
 async def oi(ctx):
-    await ctx.send("Oi!")
+    await ctx.send(f"Oi {ctx.author.mention}!")
 
 bot.run(TOKEN)
-
-
-
-
-
-
-
-
