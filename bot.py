@@ -4,17 +4,15 @@ import requests
 import datetime
 import os
 
-# TOKEN seguro (vem da variável de ambiente)
 TOKEN = os.getenv("TOKEN")
 
-# INTENTS
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# CONFIGURAÇÕES (SEUS IDS)
+# IDS
 LOJA_CANAL_ID = 1473476696970756276
 RANKING_CANAL_ID = 1473011415567827218
 PROVAS_CANAL_ID = 1473476696970756277
@@ -23,6 +21,7 @@ CARGO_VIP_ID = 1477809290608644259
 
 ranking = {}
 
+# BOT ONLINE
 @bot.event
 async def on_ready():
     print(f"{bot.user} está online!")
@@ -32,29 +31,28 @@ async def on_ready():
 # SISTEMA DE PONTOS
 @bot.event
 async def on_message(message):
+
     if message.author.bot:
         return
 
     user_id = message.author.id
 
-    # +1 ponto interação live
+    # interação live
     if message.channel.id == LIVE_CANAL_ID:
         ranking[user_id] = ranking.get(user_id, 0) + 1
 
-    # canal de provas
+    # canal provas
     if message.channel.id == PROVAS_CANAL_ID:
 
-        # +2 meta
         if message.content.lower().startswith("!meta"):
             ranking[user_id] = ranking.get(user_id, 0) + 2
 
-        # +3 prova com imagem
         elif message.attachments:
             ranking[user_id] = ranking.get(user_id, 0) + 3
 
     await bot.process_commands(message)
 
-# LOJA AUTOMATICA
+# LOJA AUTOMÁTICA
 @tasks.loop(hours=24)
 async def enviar_loja():
 
@@ -68,25 +66,29 @@ async def enviar_loja():
         api = "https://fortnite-api.com/v2/shop"
         r = requests.get(api).json()
 
-        items = r.get("data", {}).get("featured", [])
+        items = r["data"]["entries"]
 
-        if not items:
-            await canal.send("🛒 Loja não encontrada hoje.")
-            return
+        embed = discord.Embed(
+            title="🛒 Loja de Itens Fortnite",
+            color=discord.Color.blue()
+        )
 
-        await canal.send("🛒 **Loja do Fortnite Atualizada**")
+        for item in items[:6]:
 
-        for item in items[:5]:
+            nome = item["items"][0]["name"]
+            preco = item["finalPrice"]
+            img = item["items"][0]["images"]["icon"]
 
-            nome = item.get("name", "Item")
-            preco = item.get("price", "?")
-            img = item.get("images", {}).get("icon")
+            embed.add_field(
+                name=f"{nome} — {preco} V-Bucks",
+                value=img,
+                inline=False
+            )
 
-            if img:
-                await canal.send(f"{nome} — {preco} V-Bucks\n{img}")
+        await canal.send(embed=embed)
 
-    except:
-        await canal.send("❌ Erro ao pegar loja.")
+    except Exception as e:
+        await canal.send(f"❌ Erro ao pegar loja: {e}")
 
 # RANKING SEMANAL
 @tasks.loop(hours=24)
@@ -117,14 +119,15 @@ async def verificar_ranking():
 
     await canal.send(texto)
 
-    # TOP 1 ganha cargo
+    # TOP 1 ganha VIP
     top_user_id = ranking_ordenado[0][0]
 
-    guild = bot.guilds[0]
+    guild = canal.guild
     member = guild.get_member(top_user_id)
     cargo = guild.get_role(CARGO_VIP_ID)
 
     if member and cargo:
+
         await member.add_roles(cargo)
 
         bot.loop.create_task(remover_cargo(member, cargo))
@@ -139,6 +142,7 @@ async def remover_cargo(member, cargo):
 
     await member.remove_roles(cargo)
 
+# COMANDO TESTE
 @bot.command()
 async def oi(ctx):
     await ctx.send(f"Oi {ctx.author.mention}!")
