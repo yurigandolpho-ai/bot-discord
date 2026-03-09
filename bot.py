@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands, tasks
-import requests
+import urllib.request
+import json
 import os
 import datetime
 
@@ -12,7 +13,6 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# IDS
 LOJA_CANAL_ID = 1473476696970756276
 RANKING_CANAL_ID = 1473011415567827218
 PROVAS_CANAL_ID = 1473476696970756277
@@ -47,7 +47,6 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-# COMANDO LOJA (TEXTO SIMPLES)
 @bot.command()
 async def loja(ctx):
 
@@ -57,33 +56,27 @@ async def loja(ctx):
     try:
 
         url = "https://fortnite-api.com/v2/shop"
-        response = requests.get(url, timeout=10)
-        data = response.json()
+
+        with urllib.request.urlopen(url) as response:
+            data = json.loads(response.read().decode())
 
         entries = data["data"]["entries"]
 
-        mensagem = "🛒 **Loja Fortnite**\n\n"
+        mensagem = "🛒 Loja Fortnite\n\n"
 
-        contador = 0
-
-        for entry in entries:
-
-            if contador >= 10:
-                break
+        for entry in entries[:10]:
 
             nome = entry["items"][0]["name"]
             preco = entry["finalPrice"]
 
-            mensagem += f"• {nome} — {preco} V-Bucks\n"
-
-            contador += 1
+            mensagem += f"{nome} — {preco} V-Bucks\n"
 
         await ctx.send(mensagem)
 
-    except:
-        await ctx.send("Não consegui pegar a loja agora.")
+    except Exception as e:
+        print(e)
+        await ctx.send("Loja indisponível no momento.")
 
-# RANKING SEMANAL
 @tasks.loop(hours=24)
 async def verificar_ranking():
 
@@ -98,12 +91,12 @@ async def verificar_ranking():
         return
 
     if not ranking:
-        await canal.send("🏆 Ranking semanal vazio.")
+        await canal.send("Ranking semanal vazio.")
         return
 
     ranking_ordenado = sorted(ranking.items(), key=lambda x: x[1], reverse=True)
 
-    texto = "🏆 **Ranking Semanal**\n\n"
+    texto = "🏆 Ranking Semanal\n\n"
 
     for pos, (user_id, pontos) in enumerate(ranking_ordenado, start=1):
 
