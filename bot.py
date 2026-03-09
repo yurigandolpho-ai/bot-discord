@@ -57,43 +57,31 @@ async def loja(ctx):
         return
 
     try:
-
-        url = "https://fortnite-api.com/v2/shop"
-        r = requests.get(url, timeout=10)
+        url = "https://fortnite-api.com/shop/br"
+        r = requests.get(url)
         data = r.json()
 
-        entries = data["data"]["entries"]
+        featured = data["data"]["featured"]
+        daily = data["data"]["daily"]
 
-        mensagem = "🛒 **Loja Fortnite**\n\n"
-        contador = 0
+        msg = "🛒 **LOJA DO FORTNITE**\n\n"
 
-        for entry in entries:
+        msg += "⭐ **DESTAQUES**\n"
+        for item in featured[:5]:
+            nome = item["items"][0]["name"]
+            preco = item["finalPrice"]
+            msg += f"{nome} — {preco} V-Bucks\n"
 
-            # verifica se existe items
-            if not entry.get("items"):
-                continue
+        msg += "\n🔥 **DIÁRIOS**\n"
+        for item in daily[:5]:
+            nome = item["items"][0]["name"]
+            preco = item["finalPrice"]
+            msg += f"{nome} — {preco} V-Bucks\n"
 
-            item = entry["items"][0]
-
-            nome = item.get("name", "Item desconhecido")
-            preco = entry.get("finalPrice", "?")
-
-            mensagem += f"• {nome} — {preco} V-Bucks\n"
-
-            contador += 1
-
-            if contador >= 10:
-                break
-
-        if contador == 0:
-            await ctx.send("🛒 Nenhum item disponível na loja.")
-            return
-
-        await ctx.send(mensagem)
+        await ctx.send(msg)
 
     except Exception as e:
-
-        print("ERRO LOJA COMPLETO:", e)
+        print("ERRO LOJA:", e)
         await ctx.send("❌ Erro ao pegar a loja.")
 # RANKING SEMANAL
 @tasks.loop(hours=24)
@@ -142,4 +130,5 @@ async def oi(ctx):
     await ctx.send("Oi!")
 
 bot.run(TOKEN)
+
 
