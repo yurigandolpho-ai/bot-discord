@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands, tasks
+import requests
 import os
 import datetime
 
@@ -44,24 +45,38 @@ async def on_message(message):
         elif message.attachments:
             ranking[user_id] = ranking.get(user_id, 0) + 3
 
-    # IMPORTANTE (permite comandos funcionar)
     await bot.process_commands(message)
 
 # COMANDO LOJA
 @bot.command()
 async def loja(ctx):
-
-    print("Comando loja usado")  # aparece no log do Railway
-
-    if ctx.channel.id != LOJA_CANAL_ID:
-        await ctx.send("Use o comando apenas no canal da loja.")
-        return
-
-    await ctx.send(
-        "🛒 Loja Fortnite\n\n"
-        "Veja a loja atual aqui:\n"
-        "https://fortnite.gg/shop"
-    )
+    try:
+        r = requests.get("https://fortnite-api.com/v2/shop", timeout=5)
+        
+        if r.status_code != 200:
+            await ctx.send(f"❌ Erro na API: {r.status_code}")
+            return
+        
+        data = r.json()
+        
+        if "data" not in data or "featured" not in data["data"]:
+            await ctx.send("❌ Estrutura de dados inesperada")
+            return
+        
+        items = data["data"]["featured"][:5]
+        
+        if not items:
+            await ctx.send("🛒 Nenhum item na loja")
+            return
+        
+        msg = "🛒 **Loja Fortnite**\n\n"
+        for item in items:
+            msg += f"• {item.get('name', 'Item')} - {item.get('price', '?')} V-Bucks\n"
+        
+        await ctx.send(msg)
+    
+    except Exception as e:
+        await ctx.send(f"❌ Erro: {str(e)}")
 
 @tasks.loop(hours=24)
 async def verificar_ranking():
@@ -98,6 +113,7 @@ async def oi(ctx):
     await ctx.send("Oi!")
 
 bot.run(TOKEN)
+
 
 
 
