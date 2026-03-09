@@ -12,7 +12,6 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# IDS DOS CANAIS
 LOJA_CANAL_ID = 1473476696970756276
 RANKING_CANAL_ID = 1473011415567827218
 PROVAS_CANAL_ID = 1473476696970756277
@@ -34,11 +33,9 @@ async def on_message(message):
 
     user_id = message.author.id
 
-    # pontos live
     if message.channel.id == LIVE_CANAL_ID:
         ranking[user_id] = ranking.get(user_id, 0) + 1
 
-    # pontos provas
     if message.channel.id == PROVAS_CANAL_ID:
 
         if message.content.lower().startswith("!meta"):
@@ -49,7 +46,6 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-# COMANDO LOJA
 @bot.command()
 async def loja(ctx):
 
@@ -58,32 +54,31 @@ async def loja(ctx):
 
     try:
 
-        url = "https://fortnite-api.com/v2/shop"
-        response = requests.get(url)
+        url = "https://fortnite-api.com/v2/shop?language=pt-BR"
+        response = requests.get(url, timeout=10)
         data = response.json()
 
-        shop = data.get("data", {}).get("shop", [])
+        entries = data["data"]["entries"]
 
-        if not shop:
-            await ctx.send("Nenhum item encontrado na loja.")
+        if not entries:
+            await ctx.send("A loja veio vazia da API.")
             return
 
         mensagem = "🛒 **Loja Fortnite**\n\n"
 
-        for item in shop[:10]:
+        for entry in entries[:10]:
 
-            nome = item.get("displayName", "Item")
-            preco = item.get("price", {}).get("finalPrice", "?")
+            nome = entry["items"][0]["name"]
+            preco = entry["finalPrice"]
 
             mensagem += f"• {nome} — {preco} V-Bucks\n"
 
         await ctx.send(mensagem)
 
     except Exception as e:
-        print(e)
-        await ctx.send("Erro ao pegar a loja.")
+        print("Erro loja:", e)
+        await ctx.send("Erro ao pegar loja.")
 
-# RANKING SEMANAL
 @tasks.loop(hours=24)
 async def verificar_ranking():
 
@@ -112,7 +107,6 @@ async def verificar_ranking():
 
     await canal.send(texto)
 
-    # dar VIP ao top 1
     top_user_id = ranking_ordenado[0][0]
 
     guild = canal.guild
@@ -124,9 +118,11 @@ async def verificar_ranking():
 
     ranking.clear()
 
-# COMANDO TESTE
 @bot.command()
 async def oi(ctx):
     await ctx.send("Oi!")
 
 bot.run(TOKEN)
+
+bot.run(TOKEN)
+
