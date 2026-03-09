@@ -13,6 +13,7 @@ intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # IDS DOS CANAIS
+LOJA_CANAL_ID = 1473476696970756276
 RANKING_CANAL_ID = 1473011415567827218
 PROVAS_CANAL_ID = 1473476696970756277
 LIVE_CANAL_ID = 1473476696970756278
@@ -35,11 +36,11 @@ async def on_message(message):
 
     user_id = message.author.id
 
-    # interação live
+    # interação no canal live
     if message.channel.id == LIVE_CANAL_ID:
         ranking[user_id] = ranking.get(user_id, 0) + 1
 
-    # canal provas
+    # canal de provas
     if message.channel.id == PROVAS_CANAL_ID:
 
         if message.content.lower().startswith("!meta"):
@@ -50,9 +51,13 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-# COMANDO LOJA
+# COMANDO LOJA (FUNCIONA APENAS NO CANAL DE LOJA)
 @bot.command()
 async def loja(ctx):
+
+    if ctx.channel.id != LOJA_CANAL_ID:
+        await ctx.send("❌ Use o comando !loja apenas no canal de loja.")
+        return
 
     try:
 
@@ -141,5 +146,5 @@ async def oi(ctx):
     await ctx.send(f"Oi {ctx.author.mention}!")
 
 bot.run(TOKEN)
-bot.run(TOKEN)
+
 
