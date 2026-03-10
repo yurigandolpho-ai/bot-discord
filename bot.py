@@ -12,6 +12,7 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# IDs
 LOJA_CANAL_ID = 1473476696970756276
 RANKING_CANAL_ID = 1473011415567827218
 PROVAS_CANAL_ID = 1473476696970756277
@@ -44,27 +45,35 @@ async def on_message(message):
     await bot.process_commands(message)
 
 # --------------------
-# COMANDO LOJA
+# COMANDO !LOJA via fnbr.co API
 # --------------------
 @bot.command()
 async def loja(ctx):
-
     if ctx.channel.id != LOJA_CANAL_ID:
         return
 
+    await ctx.send("⏳ Pegando a loja do Fortnite...")
+
     try:
+        # fnbr.co API gratuita
+        response = requests.get("https://fnbr.co/api/shop", headers={"Authorization": "Bearer YOUR_FNBR_KEY"}, timeout=10)
+        response.raise_for_status()
+        data = response.json()
 
-        url = "https://bot.fnbr.co/shop-image/fnbr-shop.png"
+        items = data.get("data", [])
 
-        embed = discord.Embed(
-            title="🛒 Loja do Fortnite de Hoje",
-            description="Atualizada automaticamente",
-            color=discord.Color.blue()
-        )
+        if not items:
+            await ctx.send("🛒 Nenhum item encontrado na loja.")
+            return
 
-        embed.set_image(url=url)
+        msg = "🛒 **Loja Fortnite Atualizada**\n\n"
+        for item in items[:12]:  # Limite 12 para não floodar
+            nome = item.get("name", "Item desconhecido")
+            preco = item.get("cost", "?")
+            tipo = item.get("type", "")
+            msg += f"{nome} ({tipo}) — {preco} V-Bucks\n"
 
-        await ctx.send(embed=embed)
+        await ctx.send(msg)
 
     except Exception as e:
         await ctx.send(f"❌ Erro ao pegar a loja: {e}")
@@ -74,14 +83,11 @@ async def loja(ctx):
 # --------------------
 @tasks.loop(hours=24)
 async def verificar_ranking():
-
     hoje = datetime.datetime.utcnow()
-
     if hoje.weekday() != 6:
         return
 
     canal = bot.get_channel(RANKING_CANAL_ID)
-
     if not canal:
         return
 
@@ -90,7 +96,6 @@ async def verificar_ranking():
         return
 
     sorted_rank = sorted(ranking.items(), key=lambda x: x[1], reverse=True)
-
     texto = "🏆 **Ranking Semanal**\n\n"
 
     for i, (uid, pts) in enumerate(sorted_rank, start=1):
@@ -100,10 +105,8 @@ async def verificar_ranking():
     await canal.send(texto)
 
     top_uid = sorted_rank[0][0]
-
     member = canal.guild.get_member(top_uid)
     cargo = canal.guild.get_role(CARGO_VIP_ID)
-
     if member and cargo:
         await member.add_roles(cargo)
 
