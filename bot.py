@@ -51,14 +51,15 @@ async def on_message(message):
 @bot.command()
 async def loja(ctx):
     try:
-        r = requests.get("https://fortnite-api.com/v2/cosmetics/br/search?language=en", timeout=5)
+        headers = {"User-Agent": "Mozilla/5.0"}
+        r = requests.get("https://fortnite-api.com/v2/shop", headers=headers, timeout=5)
         
         if r.status_code != 200:
             await ctx.send(f"❌ Erro na API: {r.status_code}")
             return
         
         data = r.json()
-        items = data.get("result", [])[:5]
+        items = data.get("data", {}).get("entries", [])[:5]
         
         if not items:
             await ctx.send("🛒 Nenhum item encontrado na loja")
@@ -66,9 +67,9 @@ async def loja(ctx):
         
         msg = "🛒 **Loja Fortnite**\n\n"
         for item in items:
-            nome = item.get('name', 'Item desconhecido')
-            raridade = item.get('rarity', {}).get('displayValue', '?')
-            msg += f"• {nome} ({raridade})\n"
+            nome = item.get('devName', 'Item desconhecido').split('x ')[-1]
+            preco = item.get('finalPrice', '?')
+            msg += f"• {nome} - {preco} V-Bucks\n"
         
         await ctx.send(msg)
     
