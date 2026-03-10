@@ -51,32 +51,30 @@ async def on_message(message):
 @bot.command()
 async def loja(ctx):
     try:
-        headers = {"User-Agent": "Mozilla/5.0"}
-        r = requests.get("https://fortnite-api.com/v2/shop", headers=headers, timeout=5)
+        api_key = os.getenv("fd0a2c7c-79ec4269-7faa3d34-e4f8b2e5")
+        headers = {"Authorization": api_key}
+        r = requests.get("https://fortniteapi.io/v2/shop", headers=headers, timeout=5)
         
         if r.status_code != 200:
-            await ctx.send(f"❌ Erro na API: {r.status_code}")
+            await ctx.send(f"❌ Erro: {r.status_code}")
             return
         
         data = r.json()
-        items = data.get("data", {}).get("entries", [])[:5]
+        items = data.get("shop", [])[:5]
         
         if not items:
-            await ctx.send("🛒 Nenhum item encontrado na loja")
+            await ctx.send("🛒 Nenhum item encontrado")
             return
         
         msg = "🛒 **Loja Fortnite**\n\n"
         for item in items:
-            nome = item.get('devName', 'Item desconhecido').split('x ')[-1]
-            preco = item.get('finalPrice', '?')
-            msg += f"• {nome} - {preco} V-Bucks\n"
+            nome = item.get('name', 'Item')
+            msg += f"• {nome}\n"
         
         await ctx.send(msg)
     
     except Exception as e:
         await ctx.send(f"❌ Erro: {str(e)}")
-        print(f"Erro: {e}")
-
 @tasks.loop(hours=24)
 async def verificar_ranking():
 
@@ -112,3 +110,4 @@ async def oi(ctx):
     await ctx.send("Oi!")
 
 bot.run(TOKEN)
+
