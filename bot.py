@@ -6,7 +6,7 @@ import requests
 from io import BytesIO
 
 # ----- Configurações -----
-TOKEN = os.getenv("TOKEN")
+TOKEN = os.getenv("TOKEN")  # Seu token do Discord
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
@@ -56,9 +56,9 @@ async def loja(ctx):
     msg = await ctx.send("⏳ Pegando a loja do Fortnite...")
 
     try:
-        api_key = "BK3486J-B9A4SKA-HEFT2AE-KSKHWAJ"  # Substitua pela sua API key do ScreenshotAPI.net
+        api_key = "BK3486J-B9A4SKA-HEFT2AE-KSKHWAJ"  # Sua API key do ScreenshotAPI
         url_to_capture = "https://www.fortnite.com/pt-BR/shop"
-        api_url = f"https://api.screenshotapi.net/screenshot?token={api_key}&url={url_to_capture}&full_page=true"
+        api_url = f"https://api.screenshotapi.net/screenshot?token={api_key}&url={url_to_capture}&full_page=true&output=image"
 
         response = requests.get(api_url)
         response.raise_for_status()
@@ -118,4 +118,3 @@ async def oi(ctx):
 
 # ----- Rodar bot -----
 bot.run(TOKEN)
-
