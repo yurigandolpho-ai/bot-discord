@@ -7,8 +7,8 @@ import requests
 # --------------------
 # CONFIGURAÇÃO
 # --------------------
-TOKEN = os.getenv("TOKEN")  # seu token do Discord
-FNBR_KEY = "BK3486J-B9A4SKA-HEFT2AE-KSKHWAJ"  # sua chave do fnbr.co
+TOKEN = os.getenv("TOKEN")  # Token do Discord
+SCREENSHOT_KEY = "BK3486J-B9A4SKA-HEFT2AE-KSKHWAJ"  # Sua chave do ScreenshotAPI
 
 LOJA_CANAL_ID = 1473476696970756276
 RANKING_CANAL_ID = 1473011415567827218
@@ -63,39 +63,24 @@ async def loja(ctx):
     msg = await ctx.send("⏳ Pegando a loja do Fortnite...")
 
     try:
-        response = requests.get(
-            "https://fnbr.co/api/shop",
-            headers={"Authorization": f"Bearer {FNBR_KEY}"},
-            timeout=10
-        )
+        # URL da página da loja do Fortnite
+        loja_url = "https://www.fortnite.com/pt-BR/shop"
+
+        # Requisição para ScreenshotAPI
+        screenshot_url = f"https://api.screenshotapi.net/screenshot?token={SCREENSHOT_KEY}&url={loja_url}&full_page=true&output=image"
+
+        response = requests.get(screenshot_url, timeout=30)
         response.raise_for_status()
-        data = response.json()
-        items = data.get("data", [])
 
-        if not items:
-            await msg.edit(content="🛒 Nenhum item encontrado na loja.")
-            return
+        # Salva a imagem temporariamente
+        with open("loja.png", "wb") as f:
+            f.write(response.content)
 
-        embed = discord.Embed(
-            title="🛒 Loja do Fortnite de Hoje",
-            description="Atualizada automaticamente",
-            color=discord.Color.blue()
-        )
-
-        for item in items[:12]:  # limitar a 12 itens
-            nome = item.get("name", "Item desconhecido")
-            preco = item.get("price", "?")
-            tipo = item.get("readableType", "")
-            imagem = item.get("images", {}).get("featured")
-            texto = f"{tipo} — {preco} V-Bucks"
-            embed.add_field(name=nome, value=texto, inline=True)
-            if imagem:
-                embed.set_image(url=imagem)  # destaque na última skin
-
-        await msg.edit(content="", embed=embed)
+        # Envia a imagem no Discord
+        await ctx.send(file=discord.File("loja.png"))
 
     except Exception as e:
-        await msg.edit(content=f"❌ Erro ao pegar a loja: {e}")
+        await msg.edit(content=f"❌ Não foi possível pegar a loja: {e}")
 
 # --------------------
 # RANKING SEMANAL
