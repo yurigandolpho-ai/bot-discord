@@ -3,27 +3,24 @@ from discord.ext import commands, tasks
 import os
 import datetime
 import requests
-from io import BytesIO
 
 # ----- Configurações -----
-TOKEN = os.getenv("TOKEN")  # Seu token do Discord
+TOKEN = os.getenv("TOKEN")
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# ----- IDs dos canais e cargos -----
+# ----- IDs -----
 LOJA_CANAL_ID = 1473476696970756276
 RANKING_CANAL_ID = 1473011415567827218
 PROVAS_CANAL_ID = 1473476696970756277
 LIVE_CANAL_ID = 1473476696970756278
 CARGO_VIP_ID = 1477809290608644259
 
-# ----- Ranking semanal -----
 ranking = {}
 
-# ----- Eventos -----
 @bot.event
 async def on_ready():
     print("Bot online!")
@@ -47,49 +44,61 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-# ----- Comando !loja -----
 @bot.command()
 async def loja(ctx):
     if ctx.channel.id != LOJA_CANAL_ID:
         return
 
-    msg = await ctx.send("⏳ Pegando a loja do Fortnite...")
+    msg = await ctx.send("⏳ Buscando a loja do Fortnite...")
 
     try:
-        api_key = "BK3486J-B9A4SKA-HEFT2AE-KSKHWAJ"
-        target_url = "https://www.fortnite.com/pt-BR/shop"
-        api_url = (
-            f"https://shot.screenshotapi.net/v3/screenshot"
-            f"?token={api_key}"
-            f"&url={target_url}"
-            f"&output=image"
-            f"&full_page=true"
-        )
-
-        response = requests.get(api_url, timeout=30)
+        # Faz a requisição à API de loja
+        response = requests.get("https://fortnite-api.com/v2/shop?language=pt-BR", timeout=10)
         response.raise_for_status()
+        data = response.json().get("data", {})
 
-        img_bytes = BytesIO(response.content)
+        # Pega entries diários + destaque
+        entries = []
+        daily = data.get("daily", {}).get("entries", [])
+        featured = data.get("featured", {}).get("entries", [])
+        entries = daily + featured
 
+        if not entries:
+            await msg.edit(content="🛒 Nenhum item encontrado na loja.")
+            return
+
+        # Cria embed
         embed = discord.Embed(
             title="🛒 Loja do Fortnite de Hoje",
-            description="Atualizada automaticamente",
+            description="Veja os itens e preços:",
             color=discord.Color.blue()
         )
-        embed.set_image(url="attachment://loja.png")
 
-        await ctx.send(embed=embed, file=discord.File(img_bytes, "loja.png"))
+        count = 0
+        for item_entry in entries:
+            item = item_entry.get("items", [None])[0]
+            if not item:
+                continue
+
+            nome = item.get("name", "Desconhecido")
+            preco = item_entry.get("finalPrice", "?")
+            embed.add_field(name=nome, value=f"💰 {preco} V‑Bucks", inline=True)
+
+            count += 1
+            if count >= 15:  # limite pra não floodar
+                break
+
+        await ctx.send(embed=embed)
         await msg.delete()
 
-    except Exception as e:
-        await msg.edit(content=f"❌ Erro ao pegar a loja: {e}")
-        print("Erro loja:", e)
+    except Exception as erro:
+        await msg.edit(content=f"❌ Não foi possível pegar a loja: {erro}")
+        print("Erro loja:", erro)
 
-# ----- Ranking semanal -----
 @tasks.loop(hours=24)
 async def verificar_ranking():
     hoje = datetime.datetime.utcnow()
-    if hoje.weekday() != 6:  # 6 = domingo UTC
+    if hoje.weekday() != 6:
         return
 
     canal = bot.get_channel(RANKING_CANAL_ID)
@@ -117,10 +126,8 @@ async def verificar_ranking():
 
     ranking.clear()
 
-# ----- Comando teste -----
 @bot.command()
 async def oi(ctx):
     await ctx.send(f"Oi {ctx.author.mention}!")
 
-# ----- Rodar bot -----
 bot.run(TOKEN)
