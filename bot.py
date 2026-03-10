@@ -20,7 +20,7 @@ PROVAS_CANAL_ID = 1473476696970756277
 LIVE_CANAL_ID = 1473476696970756278
 CARGO_VIP_ID = 1477809290608644259
 
-# ----- Sistema de ranking -----
+# ----- Ranking semanal -----
 ranking = {}
 
 # ----- Eventos -----
@@ -47,7 +47,7 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-# ----- Comando !loja com ScreenshotAPI -----
+# ----- Comando !loja -----
 @bot.command()
 async def loja(ctx):
     if ctx.channel.id != LOJA_CANAL_ID:
@@ -56,14 +56,20 @@ async def loja(ctx):
     msg = await ctx.send("⏳ Pegando a loja do Fortnite...")
 
     try:
-        api_key = "BK3486J-B9A4SKA-HEFT2AE-KSKHWAJ"  # Sua API key do ScreenshotAPI
-        url_to_capture = "https://www.fortnite.com/pt-BR/shop"
-        api_url = f"https://api.screenshotapi.net/screenshot?token={api_key}&url={url_to_capture}&full_page=true&output=image"
+        api_key = "BK3486J-B9A4SKA-HEFT2AE-KSKHWAJ"
+        target_url = "https://www.fortnite.com/pt-BR/shop"
+        api_url = (
+            f"https://shot.screenshotapi.net/v3/screenshot"
+            f"?token={api_key}"
+            f"&url={target_url}"
+            f"&output=image"
+            f"&full_page=true"
+        )
 
-        response = requests.get(api_url)
+        response = requests.get(api_url, timeout=30)
         response.raise_for_status()
 
-        image_bytes = BytesIO(response.content)
+        img_bytes = BytesIO(response.content)
 
         embed = discord.Embed(
             title="🛒 Loja do Fortnite de Hoje",
@@ -72,7 +78,7 @@ async def loja(ctx):
         )
         embed.set_image(url="attachment://loja.png")
 
-        await ctx.send(embed=embed, file=discord.File(fp=image_bytes, filename="loja.png"))
+        await ctx.send(embed=embed, file=discord.File(img_bytes, "loja.png"))
         await msg.delete()
 
     except Exception as e:
