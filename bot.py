@@ -1,14 +1,14 @@
 import discord
 from discord.ext import commands, tasks
-import os
 import datetime
 import requests
+import os
 
 # --------------------
 # CONFIGURAÇÃO
 # --------------------
 TOKEN = os.getenv("TOKEN")  # Token do Discord
-SCREENSHOT_KEY = "BK3486J-B9A4SKA-HEFT2AE-KSKHWAJ"  # Sua chave do ScreenshotAPI
+SCREENSHOT_KEY = "76V7H2B-Q4CM0SC-QMASYAK-TWW0A2F"  # Sua chave do Apiflash
 
 LOJA_CANAL_ID = 1473476696970756276
 RANKING_CANAL_ID = 1473011415567827218
@@ -21,7 +21,6 @@ intents.message_content = True
 intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
-
 ranking = {}
 
 # --------------------
@@ -39,11 +38,9 @@ async def on_message(message):
 
     uid = message.author.id
 
-    # pontos por participar de live
     if message.channel.id == LIVE_CANAL_ID:
         ranking[uid] = ranking.get(uid, 0) + 1
 
-    # pontos por provas
     if message.channel.id == PROVAS_CANAL_ID:
         if message.content.lower().startswith("!meta"):
             ranking[uid] = ranking.get(uid, 0) + 2
@@ -63,11 +60,11 @@ async def loja(ctx):
     msg = await ctx.send("⏳ Pegando a loja do Fortnite...")
 
     try:
-        # URL da página da loja do Fortnite
+        # URL da loja do Fortnite
         loja_url = "https://www.fortnite.com/pt-BR/shop"
 
-        # Requisição para ScreenshotAPI
-        screenshot_url = f"https://api.screenshotapi.net/screenshot?token={SCREENSHOT_KEY}&url={loja_url}&full_page=true&output=image"
+        # URL do Apiflash para pegar screenshot da loja inteira
+        screenshot_url = f"https://api.apiflash.com/v1/urltoimage?access_key={SCREENSHOT_KEY}&url={loja_url}&full_page=true&format=png"
 
         response = requests.get(screenshot_url, timeout=30)
         response.raise_for_status()
@@ -76,11 +73,10 @@ async def loja(ctx):
         with open("loja.png", "wb") as f:
             f.write(response.content)
 
-        # Envia a imagem no Discord
         await ctx.send(file=discord.File("loja.png"))
 
     except Exception as e:
-        await msg.edit(content=f"❌ Não foi possível pegar a loja: {e}")
+        await msg.edit(content=f"❌ Erro ao pegar a loja: {e}")
 
 # --------------------
 # RANKING SEMANAL
