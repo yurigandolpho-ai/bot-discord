@@ -12,7 +12,6 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# ----- IDs -----
 LOJA_CANAL_ID = 1473476696970756276
 RANKING_CANAL_ID = 1473011415567827218
 PROVAS_CANAL_ID = 1473476696970756277
@@ -52,40 +51,30 @@ async def loja(ctx):
     msg = await ctx.send("⏳ Buscando a loja do Fortnite...")
 
     try:
-        # Faz a requisição à API de loja
-        response = requests.get("https://fortnite-api.com/v2/shop?language=pt-BR", timeout=10)
+        # nova URL da API alternativa
+        response = requests.get("https://api-fortnite.com/shop?lang=pt-BR", timeout=10)
         response.raise_for_status()
-        data = response.json().get("data", {})
+        data = response.json()
 
-        # Pega entries diários + destaque
-        entries = []
-        daily = data.get("daily", {}).get("entries", [])
-        featured = data.get("featured", {}).get("entries", [])
-        entries = daily + featured
+        items = data.get("data", [])
 
-        if not entries:
+        if not items:
             await msg.edit(content="🛒 Nenhum item encontrado na loja.")
             return
 
-        # Cria embed
         embed = discord.Embed(
             title="🛒 Loja do Fortnite de Hoje",
-            description="Veja os itens e preços:",
+            description="Itens e preços listados:",
             color=discord.Color.blue()
         )
 
         count = 0
-        for item_entry in entries:
-            item = item_entry.get("items", [None])[0]
-            if not item:
-                continue
-
-            nome = item.get("name", "Desconhecido")
-            preco = item_entry.get("finalPrice", "?")
-            embed.add_field(name=nome, value=f"💰 {preco} V‑Bucks", inline=True)
-
+        for item in items:
+            nome = item.get("name", "Item desconhecido")
+            preco = item.get("price", "?")
+            embed.add_field(name=nome, value=f"💰 {preco} V-Bucks", inline=True)
             count += 1
-            if count >= 15:  # limite pra não floodar
+            if count >= 15:
                 break
 
         await ctx.send(embed=embed)
