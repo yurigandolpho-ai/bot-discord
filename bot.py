@@ -3,10 +3,9 @@ from discord.ext import commands, tasks
 import os
 import datetime
 import requests
-from io import BytesIO
 
 # ----- Configurações -----
-TOKEN = os.getenv("TOKEN")  # coloque seu token no Railway
+TOKEN = os.getenv("TOKEN")  # seu token no Railway
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
@@ -48,7 +47,7 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-# ----- Comando loja (imagem baixada) -----
+# ----- Comando loja usando API -----
 @bot.command()
 async def loja(ctx):
     if ctx.channel.id != LOJA_CANAL_ID:
@@ -57,25 +56,36 @@ async def loja(ctx):
     msg = await ctx.send("⏳ Pegando a loja do Fortnite...")
 
     try:
-        # URL da loja via screenshot externa
-        url = "https://image.thum.io/get/https://www.fortnite.com/pt-BR/shop"
-
-        # Baixa a imagem
-        response = requests.get(url)
+        response = requests.get("https://fortnite-api.com/v2/shop/br", timeout=10)
         response.raise_for_status()
-        image_bytes = BytesIO(response.content)
+        shopdata = response.json().get("data", {})
 
-        # Cria embed com a imagem
+        entries = shopdata.get("featured", {}).get("entries", []) + shopdata.get("daily", {}).get("entries", [])
+        if not entries:
+            await msg.edit(content="🛒 Nenhum item encontrado na loja.")
+            return
+
+        # Cria embed
         embed = discord.Embed(
             title="🛒 Loja do Fortnite de Hoje",
             description="Atualizada automaticamente",
             color=discord.Color.blue()
         )
-        embed.set_image(url="attachment://loja.png")
 
-        # Envia embed com a imagem
-        await ctx.send(embed=embed, file=discord.File(fp=image_bytes, filename="loja.png"))
+        count = 0
+        for e in entries:
+            items = e.get("items", [])
+            if not items:
+                continue
+            item = items[0]
+            nome = item.get("name", "Item desconhecido")
+            preco = e.get("finalPrice", "?")
+            embed.add_field(name=nome, value=f"{preco} V-Bucks", inline=True)
+            count += 1
+            if count >= 12:  # limita a 12 itens para não ficar gigante
+                break
 
+        await ctx.send(embed=embed)
         await msg.delete()
 
     except Exception as e:
@@ -101,7 +111,6 @@ async def verificar_ranking():
     # Ordena ranking do maior para menor
     sorted_rank = sorted(ranking.items(), key=lambda x: x[1], reverse=True)
 
-    # Cria mensagem do ranking
     texto = "🏆 **Ranking Semanal**\n\n"
     for i, (uid, pts) in enumerate(sorted_rank, start=1):
         user = await bot.fetch_user(uid)
