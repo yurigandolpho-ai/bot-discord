@@ -12,15 +12,11 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# IDs dos canais
 LOJA_CANAL_ID = 1473476696970756276
 RANKING_CANAL_ID = 1473011415567827218
 PROVAS_CANAL_ID = 1473476696970756277
 LIVE_CANAL_ID = 1473476696970756278
 CARGO_VIP_ID = 1477809290608644259
-
-# SUA API DA SCREENSHOT
-SCREENSHOT_API = "BK3486J-B9A4SKA-HEFT2AE-KSKHWAJ"
 
 ranking = {}
 
@@ -48,20 +44,17 @@ async def on_message(message):
     await bot.process_commands(message)
 
 # --------------------
-# COMANDO !LOJA
+# COMANDO LOJA
 # --------------------
 @bot.command()
 async def loja(ctx):
+
     if ctx.channel.id != LOJA_CANAL_ID:
         return
 
-    msg = await ctx.send("⏳ Pegando a loja do Fortnite...")
-
     try:
-        # URL do site que mostra a loja (não bloqueia bots)
-        url = "https://fortniteinsider.com/item-shop/"
 
-        screenshot = f"https://shot.screenshotapi.net/screenshot?token={SCREENSHOT_API}&url={url}&full_page=true&fresh=true"
+        url = "https://bot.fnbr.co/shop-image/fnbr-shop.png"
 
         embed = discord.Embed(
             title="🛒 Loja do Fortnite de Hoje",
@@ -69,21 +62,22 @@ async def loja(ctx):
             color=discord.Color.blue()
         )
 
-        embed.set_image(url=screenshot)
+        embed.set_image(url=url)
 
-        await msg.edit(content="", embed=embed)
+        await ctx.send(embed=embed)
 
     except Exception as e:
-        await msg.edit(content=f"❌ Erro ao pegar a loja: {e}")
+        await ctx.send(f"❌ Erro ao pegar a loja: {e}")
 
 # --------------------
 # RANKING SEMANAL
 # --------------------
 @tasks.loop(hours=24)
 async def verificar_ranking():
+
     hoje = datetime.datetime.utcnow()
 
-    if hoje.weekday() != 6:  # domingo
+    if hoje.weekday() != 6:
         return
 
     canal = bot.get_channel(RANKING_CANAL_ID)
@@ -115,14 +109,8 @@ async def verificar_ranking():
 
     ranking.clear()
 
-# --------------------
-# COMANDO TESTE
-# --------------------
 @bot.command()
 async def oi(ctx):
     await ctx.send(f"Oi {ctx.author.mention}!")
 
-# --------------------
-# RODAR BOT
-# --------------------
 bot.run(TOKEN)
