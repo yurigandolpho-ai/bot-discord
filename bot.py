@@ -62,6 +62,7 @@ async def loja(ctx):
     msg = await ctx.send("⏳ Pegando a loja do Fortnite...")
 
     try:
+        # Configuração do Chrome headless
         options = Options()
         options.headless = True
         options.add_argument("--no-sandbox")
@@ -69,9 +70,10 @@ async def loja(ctx):
         options.add_argument("--window-size=1920,1080")
         options.add_argument("--disable-gpu")
 
+        # Inicializa o Chrome
         driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
         driver.get("https://www.fortnite.com/pt-BR/shop")
-        time.sleep(10)  # espera a página carregar
+        time.sleep(10)  # espera a página carregar totalmente
 
         screenshot_path = "loja.png"
         driver.save_screenshot(screenshot_path)
