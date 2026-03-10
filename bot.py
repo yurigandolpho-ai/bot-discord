@@ -56,8 +56,7 @@ async def loja(ctx):
     msg = await ctx.send("⏳ Pegando a loja do Fortnite...")
 
     try:
-        api_key = "
-BK3486J-B9A4SKA-HEFT2AE-KSKHWAJ"  # Substitua pela sua API key do ScreenshotAPI.net
+        api_key = "BK3486J-B9A4SKA-HEFT2AE-KSKHWAJ"  # Substitua pela sua API key do ScreenshotAPI.net
         url_to_capture = "https://www.fortnite.com/pt-BR/shop"
         api_url = f"https://api.screenshotapi.net/screenshot?token={api_key}&url={url_to_capture}&full_page=true"
 
@@ -119,3 +118,4 @@ async def oi(ctx):
 
 # ----- Rodar bot -----
 bot.run(TOKEN)
+
