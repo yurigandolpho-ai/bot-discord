@@ -1,14 +1,16 @@
 import discord
 from discord.ext import commands, tasks
 import datetime
-import requests
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
+import time
 import os
 
 # --------------------
 # CONFIGURAÇÃO
 # --------------------
 TOKEN = os.getenv("TOKEN")  # Token do Discord
-SCREENSHOT_KEY = "76V7H2B-Q4CM0SC-QMASYAK-TWW0A2F"  # Sua chave do Apiflash
 
 LOJA_CANAL_ID = 1473476696970756276
 RANKING_CANAL_ID = 1473011415567827218
@@ -60,20 +62,22 @@ async def loja(ctx):
     msg = await ctx.send("⏳ Pegando a loja do Fortnite...")
 
     try:
-        # URL da loja do Fortnite
-        loja_url = "https://www.fortnite.com/pt-BR/shop"
+        options = Options()
+        options.headless = True
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--window-size=1920,1080")
+        options.add_argument("--disable-gpu")
 
-        # URL do Apiflash para pegar screenshot da loja inteira
-        screenshot_url = f"https://api.apiflash.com/v1/urltoimage?access_key={SCREENSHOT_KEY}&url={loja_url}&full_page=true&format=png"
+        driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
+        driver.get("https://www.fortnite.com/pt-BR/shop")
+        time.sleep(10)  # espera a página carregar
 
-        response = requests.get(screenshot_url, timeout=30)
-        response.raise_for_status()
+        screenshot_path = "loja.png"
+        driver.save_screenshot(screenshot_path)
+        driver.quit()
 
-        # Salva a imagem temporariamente
-        with open("loja.png", "wb") as f:
-            f.write(response.content)
-
-        await ctx.send(file=discord.File("loja.png"))
+        await ctx.send(file=discord.File(screenshot_path))
 
     except Exception as e:
         await msg.edit(content=f"❌ Erro ao pegar a loja: {e}")
