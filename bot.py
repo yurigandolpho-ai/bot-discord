@@ -1,17 +1,13 @@
 import discord
 from discord.ext import commands, tasks
+import requests
 import datetime
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
-import time
 import os
 
 # --------------------
 # CONFIGURAÇÃO
 # --------------------
-TOKEN = os.getenv("TOKEN")  # Token do Discord
-
+TOKEN = os.getenv("TOKEN")  # Coloque seu token do Discord no Railway
 LOJA_CANAL_ID = 1473476696970756276
 RANKING_CANAL_ID = 1473011415567827218
 PROVAS_CANAL_ID = 1473476696970756277
@@ -62,27 +58,34 @@ async def loja(ctx):
     msg = await ctx.send("⏳ Pegando a loja do Fortnite...")
 
     try:
-        # Configuração do Chrome headless
-        options = Options()
-        options.headless = True
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--window-size=1920,1080")
-        options.add_argument("--disable-gpu")
+        # API fnbr.co (texto da loja)
+        # IMPORTANTE: precisa colocar a sua API key aqui se tiver
+        API_KEY = os.getenv("FNBR_KEY", "")  # deixa vazio se não tiver
+        headers = {"Authorization": API_KEY} if API_KEY else {}
+        response = requests.get("https://fnbr.co/api/shop", headers=headers, timeout=10)
+        response.raise_for_status()
+        data = response.json()
 
-        # Inicializa o Chrome
-        driver = webdriver.Chrome(ChromeDriverManager().install(), options=options)
-        driver.get("https://www.fortnite.com/pt-BR/shop")
-        time.sleep(10)  # espera a página carregar totalmente
+        if "data" not in data:
+            await msg.edit(content="❌ Não foi possível pegar a loja.")
+            return
 
-        screenshot_path = "loja.png"
-        driver.save_screenshot(screenshot_path)
-        driver.quit()
+        shop_items = data["data"]
+        texto = "🛒 **Loja Fortnite Atualizada**\n\n"
 
-        await ctx.send(file=discord.File(screenshot_path))
+        count = 0
+        for item in shop_items:
+            nome = item.get("name", "Item desconhecido")
+            preco = item.get("price", "?")
+            texto += f"{nome} — {preco} V-Bucks\n"
+            count += 1
+            if count >= 12:  # limita 12 itens
+                break
+
+        await msg.edit(content=texto)
 
     except Exception as e:
-        await msg.edit(content=f"❌ Erro ao pegar a loja: {e}")
+        await msg.edit(content=f"❌ Não foi possível pegar a loja: {e}")
 
 # --------------------
 # RANKING SEMANAL
