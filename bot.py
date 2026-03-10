@@ -47,19 +47,21 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-# COMANDO DA LOJA
+# --------------------
+# COMANDO !LOJA
+# --------------------
 @bot.command()
 async def loja(ctx):
     if ctx.channel.id != LOJA_CANAL_ID:
         return
 
-    await ctx.send("⏳ Pegando a loja do Fortnite...")
+    msg = await ctx.send("⏳ Pegando a loja do Fortnite...")
 
     try:
+        # URL do site que mostra a loja (não bloqueia bots)
+        url = "https://fortniteinsider.com/item-shop/"
 
-        url = "https://fnbr.co/shop"
-
-        screenshot = f"https://shot.screenshotapi.net/screenshot?token={SCREENSHOT_API}&url={url}&full_page=true"
+        screenshot = f"https://shot.screenshotapi.net/screenshot?token={SCREENSHOT_API}&url={url}&full_page=true&fresh=true"
 
         embed = discord.Embed(
             title="🛒 Loja do Fortnite de Hoje",
@@ -69,18 +71,19 @@ async def loja(ctx):
 
         embed.set_image(url=screenshot)
 
-        await ctx.send(embed=embed)
+        await msg.edit(content="", embed=embed)
 
     except Exception as e:
-        await ctx.send(f"❌ Erro ao pegar a loja: {e}")
+        await msg.edit(content=f"❌ Erro ao pegar a loja: {e}")
 
+# --------------------
 # RANKING SEMANAL
+# --------------------
 @tasks.loop(hours=24)
 async def verificar_ranking():
-
     hoje = datetime.datetime.utcnow()
 
-    if hoje.weekday() != 6:
+    if hoje.weekday() != 6:  # domingo
         return
 
     canal = bot.get_channel(RANKING_CANAL_ID)
@@ -112,8 +115,14 @@ async def verificar_ranking():
 
     ranking.clear()
 
+# --------------------
+# COMANDO TESTE
+# --------------------
 @bot.command()
 async def oi(ctx):
     await ctx.send(f"Oi {ctx.author.mention}!")
 
+# --------------------
+# RODAR BOT
+# --------------------
 bot.run(TOKEN)
