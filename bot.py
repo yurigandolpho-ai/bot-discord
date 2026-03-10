@@ -5,14 +5,14 @@ import datetime
 import requests
 
 # ----- Configurações -----
-TOKEN = os.getenv("TOKEN")  # seu token no Railway
+TOKEN = os.getenv("TOKEN")
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# ----- IDs de canais e cargos -----
+# ----- IDs dos canais e cargos -----
 LOJA_CANAL_ID = 1473476696970756276
 RANKING_CANAL_ID = 1473011415567827218
 PROVAS_CANAL_ID = 1473476696970756277
@@ -26,7 +26,7 @@ ranking = {}
 @bot.event
 async def on_ready():
     print("Bot online!")
-    verificar_ranking.start()  # inicia loop semanal
+    verificar_ranking.start()
 
 @bot.event
 async def on_message(message):
@@ -35,7 +35,6 @@ async def on_message(message):
 
     uid = message.author.id
 
-    # Pontos por mensagens nos canais
     if message.channel.id == LIVE_CANAL_ID:
         ranking[uid] = ranking.get(uid, 0) + 1
 
@@ -47,7 +46,7 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-# ----- Comando loja usando API -----
+# ----- Comando !loja usando API do Fortnite -----
 @bot.command()
 async def loja(ctx):
     if ctx.channel.id != LOJA_CANAL_ID:
@@ -56,43 +55,48 @@ async def loja(ctx):
     msg = await ctx.send("⏳ Pegando a loja do Fortnite...")
 
     try:
-        response = requests.get("https://fortnite-api.com/v2/shop/br", timeout=10)
+        response = requests.get("https://fortnite-api.com/v2/shop", timeout=10)
         response.raise_for_status()
         shopdata = response.json().get("data", {})
 
-        entries = shopdata.get("featured", {}).get("entries", []) + shopdata.get("daily", {}).get("entries", [])
+        # Tenta pegar itens diários e em destaque
+        entries = []
+        if "daily" in shopdata and shopdata["daily"].get("entries"):
+            entries += shopdata["daily"]["entries"]
+        if "featured" in shopdata and shopdata["featured"].get("entries"):
+            entries += shopdata["featured"]["entries"]
+
         if not entries:
             await msg.edit(content="🛒 Nenhum item encontrado na loja.")
             return
 
-        # Cria embed
         embed = discord.Embed(
             title="🛒 Loja do Fortnite de Hoje",
-            description="Atualizada automaticamente",
+            description="Aqui estão os preços dos itens:",
             color=discord.Color.blue()
         )
 
         count = 0
-        for e in entries:
-            items = e.get("items", [])
+        for item_entry in entries:
+            items = item_entry.get("items", [])
             if not items:
                 continue
             item = items[0]
             nome = item.get("name", "Item desconhecido")
-            preco = e.get("finalPrice", "?")
-            embed.add_field(name=nome, value=f"{preco} V-Bucks", inline=True)
+            preco = item_entry.get("finalPrice", "?")
+            embed.add_field(name=nome, value=f"{preco} V‑Bucks", inline=True)
             count += 1
-            if count >= 12:  # limita a 12 itens para não ficar gigante
+            if count >= 12:
                 break
 
         await ctx.send(embed=embed)
         await msg.delete()
 
-    except Exception as e:
-        await msg.edit(content=f"❌ Erro ao pegar a loja: {e}")
-        print("Erro loja:", e)
+    except Exception as erro:
+        await msg.edit(content=f"❌ Erro ao pegar a loja: {erro}")
+        print("Erro loja:", erro)
 
-# ----- Ranking semanal -----
+# ----- Loop de ranking semanal -----
 @tasks.loop(hours=24)
 async def verificar_ranking():
     hoje = datetime.datetime.utcnow()
@@ -108,7 +112,6 @@ async def verificar_ranking():
         await canal.send("🏆 Ranking semanal vazio.")
         return
 
-    # Ordena ranking do maior para menor
     sorted_rank = sorted(ranking.items(), key=lambda x: x[1], reverse=True)
 
     texto = "🏆 **Ranking Semanal**\n\n"
@@ -118,14 +121,12 @@ async def verificar_ranking():
 
     await canal.send(texto)
 
-    # Dá VIP pro primeiro colocado
     top_uid = sorted_rank[0][0]
     member = canal.guild.get_member(top_uid)
     cargo = canal.guild.get_role(CARGO_VIP_ID)
     if member and cargo:
         await member.add_roles(cargo)
 
-    # Limpa ranking pra próxima semana
     ranking.clear()
 
 # ----- Comando teste -----
@@ -133,5 +134,5 @@ async def verificar_ranking():
 async def oi(ctx):
     await ctx.send(f"Oi {ctx.author.mention}!")
 
-# ----- Rodar bot -----
+# ----- Iniciar bot -----
 bot.run(TOKEN)
