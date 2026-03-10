@@ -4,8 +4,8 @@ import os
 import datetime
 import requests
 
-# ----- Configurações -----
 TOKEN = os.getenv("TOKEN")
+
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
@@ -48,31 +48,34 @@ async def loja(ctx):
     if ctx.channel.id != LOJA_CANAL_ID:
         return
 
-    msg = await ctx.send("⏳ Buscando a loja do Fortnite...")
+    msg = await ctx.send("⏳ Buscando os itens da loja...")
 
     try:
-        # nova URL da API alternativa
-        response = requests.get("https://api-fortnite.com/shop?lang=pt-BR", timeout=10)
+        response = requests.get("https://fortnite-api.com/v2/shop", timeout=10)
         response.raise_for_status()
-        data = response.json()
 
-        items = data.get("data", [])
+        data = response.json().get("data", {})
+        entries = data.get("daily", {}).get("entries", []) + data.get("featured", {}).get("entries", [])
 
-        if not items:
+        if not entries:
             await msg.edit(content="🛒 Nenhum item encontrado na loja.")
             return
 
         embed = discord.Embed(
             title="🛒 Loja do Fortnite de Hoje",
-            description="Itens e preços listados:",
+            description="Itens e preços:",
             color=discord.Color.blue()
         )
 
         count = 0
-        for item in items:
+        for e in entries:
+            items = e.get("items", [])
+            if not items:
+                continue
+            item = items[0]
             nome = item.get("name", "Item desconhecido")
-            preco = item.get("price", "?")
-            embed.add_field(name=nome, value=f"💰 {preco} V-Bucks", inline=True)
+            preco = e.get("finalPrice", "?")
+            embed.add_field(name=nome, value=f"{preco} V‑Bucks", inline=True)
             count += 1
             if count >= 15:
                 break
@@ -80,9 +83,9 @@ async def loja(ctx):
         await ctx.send(embed=embed)
         await msg.delete()
 
-    except Exception as erro:
-        await msg.edit(content=f"❌ Não foi possível pegar a loja: {erro}")
-        print("Erro loja:", erro)
+    except Exception as e:
+        await msg.edit(content=f"❌ Erro ao pegar a loja: {e}")
+        print("Erro loja:", e)
 
 @tasks.loop(hours=24)
 async def verificar_ranking():
