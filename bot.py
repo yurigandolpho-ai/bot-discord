@@ -4,7 +4,17 @@ import os
 import datetime
 import requests
 
-TOKEN = os.getenv("TOKEN")
+# --------------------
+# CONFIGURAÇÃO
+# --------------------
+TOKEN = os.getenv("TOKEN")  # seu token do Discord
+FNBR_KEY = "BK3486J-B9A4SKA-HEFT2AE-KSKHWAJ"  # sua chave do fnbr.co
+
+LOJA_CANAL_ID = 1473476696970756276
+RANKING_CANAL_ID = 1473011415567827218
+PROVAS_CANAL_ID = 1473476696970756277
+LIVE_CANAL_ID = 1473476696970756278
+CARGO_VIP_ID = 1477809290608644259
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -12,15 +22,11 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# IDs
-LOJA_CANAL_ID = 1473476696970756276
-RANKING_CANAL_ID = 1473011415567827218
-PROVAS_CANAL_ID = 1473476696970756277
-LIVE_CANAL_ID = 1473476696970756278
-CARGO_VIP_ID = 1477809290608644259
-
 ranking = {}
 
+# --------------------
+# EVENTOS
+# --------------------
 @bot.event
 async def on_ready():
     print("Bot online!")
@@ -33,9 +39,11 @@ async def on_message(message):
 
     uid = message.author.id
 
+    # pontos por participar de live
     if message.channel.id == LIVE_CANAL_ID:
         ranking[uid] = ranking.get(uid, 0) + 1
 
+    # pontos por provas
     if message.channel.id == PROVAS_CANAL_ID:
         if message.content.lower().startswith("!meta"):
             ranking[uid] = ranking.get(uid, 0) + 2
@@ -45,38 +53,49 @@ async def on_message(message):
     await bot.process_commands(message)
 
 # --------------------
-# COMANDO !LOJA via fnbr.co API
+# COMANDO !LOJA
 # --------------------
 @bot.command()
 async def loja(ctx):
     if ctx.channel.id != LOJA_CANAL_ID:
         return
 
-    await ctx.send("⏳ Pegando a loja do Fortnite...")
+    msg = await ctx.send("⏳ Pegando a loja do Fortnite...")
 
     try:
-        # fnbr.co API gratuita
-        response = requests.get("https://fnbr.co/api/shop", headers={"Authorization": "Bearer YOUR_FNBR_KEY"}, timeout=10)
+        response = requests.get(
+            "https://fnbr.co/api/shop",
+            headers={"Authorization": f"Bearer {FNBR_KEY}"},
+            timeout=10
+        )
         response.raise_for_status()
         data = response.json()
-
         items = data.get("data", [])
 
         if not items:
-            await ctx.send("🛒 Nenhum item encontrado na loja.")
+            await msg.edit(content="🛒 Nenhum item encontrado na loja.")
             return
 
-        msg = "🛒 **Loja Fortnite Atualizada**\n\n"
-        for item in items[:12]:  # Limite 12 para não floodar
-            nome = item.get("name", "Item desconhecido")
-            preco = item.get("cost", "?")
-            tipo = item.get("type", "")
-            msg += f"{nome} ({tipo}) — {preco} V-Bucks\n"
+        embed = discord.Embed(
+            title="🛒 Loja do Fortnite de Hoje",
+            description="Atualizada automaticamente",
+            color=discord.Color.blue()
+        )
 
-        await ctx.send(msg)
+        for item in items[:12]:  # limitar a 12 itens
+            nome = item.get("name", "Item desconhecido")
+            preco = item.get("price", "?")
+            tipo = item.get("readableType", "")
+            imagem = item.get("images", {}).get("featured")
+            texto = f"{tipo} — {preco} V-Bucks"
+            embed.add_field(name=nome, value=texto, inline=True)
+            if imagem:
+                embed.set_image(url=imagem)  # destaque na última skin
+
+        await msg.edit(content="", embed=embed)
 
     except Exception as e:
-        await ctx.send(f"❌ Erro ao pegar a loja: {e}")
+        await msg.edit(content=f"❌ Erro ao pegar a loja: {e}")
 
 # --------------------
 # RANKING SEMANAL
@@ -84,7 +103,7 @@ async def loja(ctx):
 @tasks.loop(hours=24)
 async def verificar_ranking():
     hoje = datetime.datetime.utcnow()
-    if hoje.weekday() != 6:
+    if hoje.weekday() != 6:  # domingo
         return
 
     canal = bot.get_channel(RANKING_CANAL_ID)
@@ -112,6 +131,9 @@ async def verificar_ranking():
 
     ranking.clear()
 
+# --------------------
+# COMANDO OI
+# --------------------
 @bot.command()
 async def oi(ctx):
     await ctx.send(f"Oi {ctx.author.mention}!")
