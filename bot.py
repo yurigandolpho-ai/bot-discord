@@ -36,7 +36,8 @@ async def loja(ctx):
         
         for item in items:
             nome = item.get('name', 'Item desconhecido')
-            preco = item.get('price', '?')
+            preco = item.get('finalPrice', '?')
+            imagem = item.get('image', '')
             
             embed.add_field(name=nome, value=f"💰 {preco} V-Bucks", inline=False)
         
