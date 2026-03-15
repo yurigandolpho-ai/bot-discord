@@ -26,7 +26,7 @@ async def loja(ctx):
             return
         
         data = r.json()
-        items = data.get("shop", [])[:10]
+        items = data.get("shop", [])
         
         if not items:
             await ctx.send("🛒 Nenhum item encontrado")
@@ -34,9 +34,17 @@ async def loja(ctx):
         
         embed = discord.Embed(title="🛒 Loja Fortnite", color=discord.Color.blue())
         
-        for item in items:
-            nome = item.get('name', 'Item desconhecido')
-            preco = item.get('finalPrice', '?')
+        for item in items[:10]:
+            # Tenta extrair o nome de diferentes formas
+            nome = item.get('name') or item.get('displayName') or item.get('title') or 'Item desconhecido'
+            
+            # Extrai o preço final
+            preco_dict = item.get('price', {})
+            if isinstance(preco_dict, dict):
+                preco = preco_dict.get('finalPrice', preco_dict.get('regularPrice', '?'))
+            else:
+                preco = preco_dict
+            
             imagem = item.get('image', '')
             
             embed.add_field(name=nome, value=f"💰 {preco} V-Bucks", inline=False)
