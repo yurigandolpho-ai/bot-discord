@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import requests
 import os
+import json
 
 TOKEN = os.getenv("TOKEN")
 FORTNITE_API_KEY = os.getenv("FORTNITE_API_KEY")
@@ -26,6 +27,11 @@ async def loja(ctx):
             return
         
         data = r.json()
+        
+        # Debug: mostra a estrutura do primeiro item
+        if data.get("shop"):
+            print("Primeiro item:", json.dumps(data["shop"][0], indent=2))
+        
         items = data.get("shop", [])
         
         if not items:
@@ -35,17 +41,14 @@ async def loja(ctx):
         embed = discord.Embed(title="🛒 Loja Fortnite", color=discord.Color.blue())
         
         for item in items[:10]:
-            # Tenta extrair o nome de diferentes formas
             nome = item.get('name') or item.get('displayName') or item.get('title') or 'Item desconhecido'
             
-            # Extrai o preço final
-            preco_dict = item.get('price', {})
-            if isinstance(preco_dict, dict):
-                preco = preco_dict.get('finalPrice', preco_dict.get('regularPrice', '?'))
+            # Extrai só o valor final do preço
+            preco_info = item.get('price', {})
+            if isinstance(preco_info, dict):
+                preco = preco_info.get('finalPrice', preco_info.get('regularPrice', '?'))
             else:
-                preco = preco_dict
-            
-            imagem = item.get('image', '')
+                preco = preco_info
             
             embed.add_field(name=nome, value=f"💰 {preco} V-Bucks", inline=False)
         
